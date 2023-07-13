@@ -17,10 +17,10 @@ import {
   processUserTradeStats,
   processGlobalInfo
 } from "./process"
-import {
-  Mint as MintEvent,
-  Burn as BurnEvent
-  } from "../generated/VUSD/VUSD"
+// import {
+//   Mint as MintEvent,
+//   Burn as BurnEvent
+//   } from "../generated/VUSD/VUSD"
 
 import {
     AllTrade,
@@ -170,237 +170,237 @@ const getRewardAmount2 = (rewardTier: i32): BigInt => {
     totalInfos.save()
   }
 
-  export function handleMint(event: MintEvent): void {
-    let tradeVolume = TradeVolume.load(event.params.beneficiary.toHexString());
-    if (!tradeVolume) {
-      tradeVolume = new TradeVolume(event.params.beneficiary.toHexString())
-      tradeVolume.account = event.params.beneficiary.toHexString()
-      tradeVolume.size = BIG_NUM_ZERO
-      tradeVolume.openLongs = BIG_NUM_ZERO
-      tradeVolume.openShorts = BIG_NUM_ZERO
-      tradeVolume.collateralUsage = BIG_NUM_ZERO
-      tradeVolume.marginUsage = BIG_NUM_ZERO
-      tradeVolume.vusdBalance = BIG_NUM_ZERO
-    }
-    tradeVolume.vusdBalance = tradeVolume.vusdBalance.plus(event.params.value)
-    tradeVolume.save()
-  }
+  // export function handleMint(event: MintEvent): void {
+  //   let tradeVolume = TradeVolume.load(event.params.beneficiary.toHexString());
+  //   if (!tradeVolume) {
+  //     tradeVolume = new TradeVolume(event.params.beneficiary.toHexString())
+  //     tradeVolume.account = event.params.beneficiary.toHexString()
+  //     tradeVolume.size = BIG_NUM_ZERO
+  //     tradeVolume.openLongs = BIG_NUM_ZERO
+  //     tradeVolume.openShorts = BIG_NUM_ZERO
+  //     tradeVolume.collateralUsage = BIG_NUM_ZERO
+  //     tradeVolume.marginUsage = BIG_NUM_ZERO
+  //     tradeVolume.vusdBalance = BIG_NUM_ZERO
+  //   }
+  //   tradeVolume.vusdBalance = tradeVolume.vusdBalance.plus(event.params.value)
+  //   tradeVolume.save()
+  // }
 
-  export function handleBurn(event: BurnEvent): void {
-    let tradeVolume = TradeVolume.load(event.params.account.toHexString());
-    if (!tradeVolume) {
-      tradeVolume = new TradeVolume(event.params.account.toHexString())
-      tradeVolume.account = event.params.account.toHexString()
-      tradeVolume.size = BIG_NUM_ZERO
-      tradeVolume.openLongs = BIG_NUM_ZERO
-      tradeVolume.openShorts = BIG_NUM_ZERO
-      tradeVolume.collateralUsage = BIG_NUM_ZERO
-      tradeVolume.marginUsage = BIG_NUM_ZERO
-      tradeVolume.vusdBalance = BIG_NUM_ZERO
-    }
-    tradeVolume.vusdBalance = tradeVolume.vusdBalance.minus(event.params.value)
-    tradeVolume.save()
-  }
+  // export function handleBurn(event: BurnEvent): void {
+  //   let tradeVolume = TradeVolume.load(event.params.account.toHexString());
+  //   if (!tradeVolume) {
+  //     tradeVolume = new TradeVolume(event.params.account.toHexString())
+  //     tradeVolume.account = event.params.account.toHexString()
+  //     tradeVolume.size = BIG_NUM_ZERO
+  //     tradeVolume.openLongs = BIG_NUM_ZERO
+  //     tradeVolume.openShorts = BIG_NUM_ZERO
+  //     tradeVolume.collateralUsage = BIG_NUM_ZERO
+  //     tradeVolume.marginUsage = BIG_NUM_ZERO
+  //     tradeVolume.vusdBalance = BIG_NUM_ZERO
+  //   }
+  //   tradeVolume.vusdBalance = tradeVolume.vusdBalance.minus(event.params.value)
+  //   tradeVolume.save()
+  // }
   
-  export function handleStake(event: StakeEvent): void {
-    let vlpMint = new Mint(event.params.account.toHexString() + "-" + event.block.timestamp.toString())
-    vlpMint.account = event.params.account.toHexString()
-    vlpMint.timestamp = event.block.timestamp.toI32()
-    vlpMint.token = event.params.token.toHexString()
-    vlpMint.usdAmount = event.params.amount 
-    vlpMint.vlpAmount = event.params.mintAmount
-    vlpMint.save()
-    if (HYPER_ONE_WALLETS.includes(event.params.account.toHexString())) {
-      return;
-    }
-    let baseGlobalInfo = BaseGlobalInfo.load("global")
-    if (!baseGlobalInfo) {
-      baseGlobalInfo = new BaseGlobalInfo("global")
-      baseGlobalInfo.accumulatedSUM = BIG_NUM_ZERO
-      baseGlobalInfo.totalVLP = BIG_NUM_ZERO
-      baseGlobalInfo.totalUSDC = BIG_NUM_ZERO
-      baseGlobalInfo.totalStakes = BIG_NUM_ZERO
-      baseGlobalInfo.totalUnstakes = BIG_NUM_ZERO
-      baseGlobalInfo.hyper_ended = false
-    }
-    baseGlobalInfo.totalStakes = baseGlobalInfo.totalStakes.plus(event.params.amount)
-    let baseUserInfo = BaseUserInfo.load(event.params.account.toHexString())
-    if (!baseUserInfo) {
-      baseUserInfo = new BaseUserInfo(event.params.account.toHexString())
-      baseUserInfo.baseVela = BIG_NUM_ZERO
-      baseUserInfo.baseRatio = BIG_NUM_ZERO
-      baseUserInfo.baseVLP = BIG_NUM_ZERO
-      baseUserInfo.minimumVLP = BIG_NUM_ZERO
-      baseUserInfo.mintedVLP = BIG_NUM_ZERO
-    }
-    if (!baseGlobalInfo.hyper_ended && baseGlobalInfo.totalVLP.le(MAX_VLP_FOR_Hyper)) {
-      let rewardAmount = BIG_NUM_ZERO
-      let rewardTier = getRewardTier(BIG_NUM_ZERO, baseGlobalInfo.totalVLP)
-      if (rewardTier == 0) {
-        rewardTier = 1
-      }
-      let hyperStakingTier = HyperStakingTier.load(rewardTier.toString())
-      if (!hyperStakingTier) {
-        hyperStakingTier = new HyperStakingTier(rewardTier.toString())
-        hyperStakingTier.tier = rewardTier
-        if (rewardTier > 0) {
-          hyperStakingTier.startVLP = getBaseVLP(rewardTier - 1)
-          hyperStakingTier.endVLP = getBaseVLP(rewardTier)
-        } else {
-          hyperStakingTier.startVLP = BIG_NUM_ZERO
-          hyperStakingTier.endVLP = BIG_NUM_ZERO
-        }
-        hyperStakingTier.velaReward = getRewardAmount2(rewardTier)
-        hyperStakingTier.usdcCommitted = BIG_NUM_ZERO
-        hyperStakingTier.vlpCommitted = BIG_NUM_ZERO
-        hyperStakingTier.save()
-      }
-      let tempMintAmount = event.params.mintAmount
-      let tempUSDCAmount = event.params.amount
-      while((hyperStakingTier.vlpCommitted.plus(tempMintAmount)).gt(hyperStakingTier.endVLP.minus(hyperStakingTier.startVLP))) {
-        let vlpCommitted = hyperStakingTier.endVLP.minus(hyperStakingTier.startVLP).minus(hyperStakingTier.vlpCommitted)
-        let usdcCommitted = tempUSDCAmount.times(vlpCommitted).div(tempMintAmount)
-        hyperStakingTier.vlpCommitted = hyperStakingTier.vlpCommitted.plus(vlpCommitted)
-        hyperStakingTier.usdcCommitted = hyperStakingTier.usdcCommitted.plus(usdcCommitted)
-        hyperStakingTier.save()
-        let userStakingStats = new UserStakingStat(event.params.account.toHexString() + "-" + rewardTier.toString() + "-" + event.block.timestamp.toString())
-        userStakingStats.account = event.params.account.toHexString()
-        userStakingStats.tier = rewardTier;
-        userStakingStats.usdcAmount = usdcCommitted;
-        userStakingStats.vlpAmount = vlpCommitted;
-        userStakingStats.timestamp = event.block.timestamp.toI32()
-        userStakingStats.isHyper = true;
-        userStakingStats.save()
-        let userStakingTier = UserStakingTier.load(event.params.account.toHexString() + "-" + rewardTier.toString())
-        if (!userStakingTier) {
-          userStakingTier = new UserStakingTier(event.params.account.toHexString() + "-" + rewardTier.toString())
-          userStakingTier.account = event.params.account.toHexString()
-          userStakingTier.tier = rewardTier
-          userStakingTier.usdcCommitted = BIG_NUM_ZERO
-          userStakingTier.vlpCommitted = BIG_NUM_ZERO
-        }
-        userStakingTier.usdcCommitted = userStakingTier.usdcCommitted.plus(usdcCommitted)
-        userStakingTier.vlpCommitted = userStakingTier.vlpCommitted.plus(vlpCommitted)
-        userStakingTier.save()
-        baseUserInfo.baseVLP = baseUserInfo.baseVLP.plus(vlpCommitted)
-        rewardAmount = getRewardAmount2(rewardTier)
-        baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.minus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
-        baseUserInfo.baseVela = baseUserInfo.baseVela.plus(vlpCommitted.times(rewardAmount).div(BigInt.fromString('1000')))
-        baseUserInfo.baseRatio = baseUserInfo.baseVela.times(BigInt.fromString('1000')).div(baseUserInfo.baseVLP)
-        baseUserInfo.mintedVLP = baseUserInfo.mintedVLP.plus(vlpCommitted)
-        baseUserInfo.minimumVLP = baseUserInfo.minimumVLP.plus(vlpCommitted)
-        baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.plus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
-        tempMintAmount = tempMintAmount.minus(vlpCommitted)
-        tempUSDCAmount = tempUSDCAmount.minus(usdcCommitted)
-        rewardTier = rewardTier + 1
-        if (rewardTier > 5 || tempMintAmount.equals(BigInt.fromString('0'))) {
-          break;
-        }
-        hyperStakingTier = new HyperStakingTier(rewardTier.toString())
-        hyperStakingTier.tier = rewardTier
-        hyperStakingTier.startVLP = getBaseVLP(rewardTier - 1)
-        hyperStakingTier.endVLP = getBaseVLP(rewardTier)
-        hyperStakingTier.velaReward = getRewardAmount2(rewardTier)
-        hyperStakingTier.vlpCommitted = BIG_NUM_ZERO
-        hyperStakingTier.usdcCommitted = BIG_NUM_ZERO
-        hyperStakingTier.save()
-        if ((hyperStakingTier.vlpCommitted.plus(tempMintAmount)).le(hyperStakingTier.endVLP.minus(hyperStakingTier.startVLP))) {
-          break;
-        }
-      }
-      if (rewardTier < 6 && tempMintAmount.gt(BigInt.fromString('0'))) {
-        hyperStakingTier.vlpCommitted = hyperStakingTier.vlpCommitted.plus(tempMintAmount)
-        hyperStakingTier.usdcCommitted = hyperStakingTier.usdcCommitted.plus(tempUSDCAmount)
-        hyperStakingTier.save()
-        let userStakingStats = new UserStakingStat(event.params.account.toHexString() + "-" + rewardTier.toString() + "-" + event.block.timestamp.toString())
-        userStakingStats.account = event.params.account.toHexString()
-        userStakingStats.tier = rewardTier;
-        userStakingStats.usdcAmount = tempUSDCAmount;
-        userStakingStats.vlpAmount = tempMintAmount;
-        userStakingStats.timestamp = event.block.timestamp.toI32()
-        userStakingStats.isHyper = true;
-        userStakingStats.save()
-        let userStakingTier = UserStakingTier.load(event.params.account.toHexString() + "-" + rewardTier.toString())
-        if (!userStakingTier) {
-          userStakingTier = new UserStakingTier(event.params.account.toHexString() + "-" + rewardTier.toString())
-          userStakingTier.account = event.params.account.toHexString()
-          userStakingTier.tier = rewardTier
-          userStakingTier.usdcCommitted = BIG_NUM_ZERO
-          userStakingTier.vlpCommitted = BIG_NUM_ZERO
-        }
-        userStakingTier.usdcCommitted = userStakingTier.usdcCommitted.plus(tempUSDCAmount)
-        userStakingTier.vlpCommitted = userStakingTier.vlpCommitted.plus(tempMintAmount)
-        userStakingTier.save()
-        baseUserInfo.baseVLP = baseUserInfo.baseVLP.plus(tempMintAmount)
-        rewardAmount = getRewardAmount2(rewardTier)
-        baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.minus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
-        baseUserInfo.baseVela = baseUserInfo.baseVela.plus(tempMintAmount.times(rewardAmount).div(BigInt.fromString('1000')))
-        baseUserInfo.baseRatio = baseUserInfo.baseVela.times(BigInt.fromString('1000')).div(baseUserInfo.baseVLP)
-        baseUserInfo.mintedVLP = baseUserInfo.mintedVLP.plus(tempMintAmount)
-        baseUserInfo.minimumVLP = baseUserInfo.minimumVLP.plus(tempMintAmount)
-        baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.plus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
-      }
-      baseGlobalInfo.totalVLP = baseGlobalInfo.totalVLP.plus(event.params.mintAmount)
-      baseGlobalInfo.totalUSDC = baseGlobalInfo.totalUSDC.plus(event.params.amount)
-      if (baseGlobalInfo.totalVLP.ge(MAX_VLP_FOR_Hyper)) {
-        baseGlobalInfo.hyper_ended = true
-      }
-    } else {
-      baseGlobalInfo.totalVLP = baseGlobalInfo.totalVLP.plus(event.params.mintAmount)
-      baseGlobalInfo.totalUSDC = baseGlobalInfo.totalUSDC.plus(event.params.amount)
-      baseUserInfo.mintedVLP = baseUserInfo.mintedVLP.plus(event.params.mintAmount)
-    }
-    baseGlobalInfo.save()
-    baseUserInfo.save()
-  }
+  // export function handleStake(event: StakeEvent): void {
+  //   let vlpMint = new Mint(event.params.account.toHexString() + "-" + event.block.timestamp.toString())
+  //   vlpMint.account = event.params.account.toHexString()
+  //   vlpMint.timestamp = event.block.timestamp.toI32()
+  //   vlpMint.token = event.params.token.toHexString()
+  //   vlpMint.usdAmount = event.params.amount 
+  //   vlpMint.vlpAmount = event.params.mintAmount
+  //   vlpMint.save()
+  //   if (HYPER_ONE_WALLETS.includes(event.params.account.toHexString())) {
+  //     return;
+  //   }
+  //   let baseGlobalInfo = BaseGlobalInfo.load("global")
+  //   if (!baseGlobalInfo) {
+  //     baseGlobalInfo = new BaseGlobalInfo("global")
+  //     baseGlobalInfo.accumulatedSUM = BIG_NUM_ZERO
+  //     baseGlobalInfo.totalVLP = BIG_NUM_ZERO
+  //     baseGlobalInfo.totalUSDC = BIG_NUM_ZERO
+  //     baseGlobalInfo.totalStakes = BIG_NUM_ZERO
+  //     baseGlobalInfo.totalUnstakes = BIG_NUM_ZERO
+  //     baseGlobalInfo.hyper_ended = false
+  //   }
+  //   baseGlobalInfo.totalStakes = baseGlobalInfo.totalStakes.plus(event.params.amount)
+  //   let baseUserInfo = BaseUserInfo.load(event.params.account.toHexString())
+  //   if (!baseUserInfo) {
+  //     baseUserInfo = new BaseUserInfo(event.params.account.toHexString())
+  //     baseUserInfo.baseVela = BIG_NUM_ZERO
+  //     baseUserInfo.baseRatio = BIG_NUM_ZERO
+  //     baseUserInfo.baseVLP = BIG_NUM_ZERO
+  //     baseUserInfo.minimumVLP = BIG_NUM_ZERO
+  //     baseUserInfo.mintedVLP = BIG_NUM_ZERO
+  //   }
+  //   if (!baseGlobalInfo.hyper_ended && baseGlobalInfo.totalVLP.le(MAX_VLP_FOR_Hyper)) {
+  //     let rewardAmount = BIG_NUM_ZERO
+  //     let rewardTier = getRewardTier(BIG_NUM_ZERO, baseGlobalInfo.totalVLP)
+  //     if (rewardTier == 0) {
+  //       rewardTier = 1
+  //     }
+  //     let hyperStakingTier = HyperStakingTier.load(rewardTier.toString())
+  //     if (!hyperStakingTier) {
+  //       hyperStakingTier = new HyperStakingTier(rewardTier.toString())
+  //       hyperStakingTier.tier = rewardTier
+  //       if (rewardTier > 0) {
+  //         hyperStakingTier.startVLP = getBaseVLP(rewardTier - 1)
+  //         hyperStakingTier.endVLP = getBaseVLP(rewardTier)
+  //       } else {
+  //         hyperStakingTier.startVLP = BIG_NUM_ZERO
+  //         hyperStakingTier.endVLP = BIG_NUM_ZERO
+  //       }
+  //       hyperStakingTier.velaReward = getRewardAmount2(rewardTier)
+  //       hyperStakingTier.usdcCommitted = BIG_NUM_ZERO
+  //       hyperStakingTier.vlpCommitted = BIG_NUM_ZERO
+  //       hyperStakingTier.save()
+  //     }
+  //     let tempMintAmount = event.params.mintAmount
+  //     let tempUSDCAmount = event.params.amount
+  //     while((hyperStakingTier.vlpCommitted.plus(tempMintAmount)).gt(hyperStakingTier.endVLP.minus(hyperStakingTier.startVLP))) {
+  //       let vlpCommitted = hyperStakingTier.endVLP.minus(hyperStakingTier.startVLP).minus(hyperStakingTier.vlpCommitted)
+  //       let usdcCommitted = tempUSDCAmount.times(vlpCommitted).div(tempMintAmount)
+  //       hyperStakingTier.vlpCommitted = hyperStakingTier.vlpCommitted.plus(vlpCommitted)
+  //       hyperStakingTier.usdcCommitted = hyperStakingTier.usdcCommitted.plus(usdcCommitted)
+  //       hyperStakingTier.save()
+  //       let userStakingStats = new UserStakingStat(event.params.account.toHexString() + "-" + rewardTier.toString() + "-" + event.block.timestamp.toString())
+  //       userStakingStats.account = event.params.account.toHexString()
+  //       userStakingStats.tier = rewardTier;
+  //       userStakingStats.usdcAmount = usdcCommitted;
+  //       userStakingStats.vlpAmount = vlpCommitted;
+  //       userStakingStats.timestamp = event.block.timestamp.toI32()
+  //       userStakingStats.isHyper = true;
+  //       userStakingStats.save()
+  //       let userStakingTier = UserStakingTier.load(event.params.account.toHexString() + "-" + rewardTier.toString())
+  //       if (!userStakingTier) {
+  //         userStakingTier = new UserStakingTier(event.params.account.toHexString() + "-" + rewardTier.toString())
+  //         userStakingTier.account = event.params.account.toHexString()
+  //         userStakingTier.tier = rewardTier
+  //         userStakingTier.usdcCommitted = BIG_NUM_ZERO
+  //         userStakingTier.vlpCommitted = BIG_NUM_ZERO
+  //       }
+  //       userStakingTier.usdcCommitted = userStakingTier.usdcCommitted.plus(usdcCommitted)
+  //       userStakingTier.vlpCommitted = userStakingTier.vlpCommitted.plus(vlpCommitted)
+  //       userStakingTier.save()
+  //       baseUserInfo.baseVLP = baseUserInfo.baseVLP.plus(vlpCommitted)
+  //       rewardAmount = getRewardAmount2(rewardTier)
+  //       baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.minus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
+  //       baseUserInfo.baseVela = baseUserInfo.baseVela.plus(vlpCommitted.times(rewardAmount).div(BigInt.fromString('1000')))
+  //       baseUserInfo.baseRatio = baseUserInfo.baseVela.times(BigInt.fromString('1000')).div(baseUserInfo.baseVLP)
+  //       baseUserInfo.mintedVLP = baseUserInfo.mintedVLP.plus(vlpCommitted)
+  //       baseUserInfo.minimumVLP = baseUserInfo.minimumVLP.plus(vlpCommitted)
+  //       baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.plus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
+  //       tempMintAmount = tempMintAmount.minus(vlpCommitted)
+  //       tempUSDCAmount = tempUSDCAmount.minus(usdcCommitted)
+  //       rewardTier = rewardTier + 1
+  //       if (rewardTier > 5 || tempMintAmount.equals(BigInt.fromString('0'))) {
+  //         break;
+  //       }
+  //       hyperStakingTier = new HyperStakingTier(rewardTier.toString())
+  //       hyperStakingTier.tier = rewardTier
+  //       hyperStakingTier.startVLP = getBaseVLP(rewardTier - 1)
+  //       hyperStakingTier.endVLP = getBaseVLP(rewardTier)
+  //       hyperStakingTier.velaReward = getRewardAmount2(rewardTier)
+  //       hyperStakingTier.vlpCommitted = BIG_NUM_ZERO
+  //       hyperStakingTier.usdcCommitted = BIG_NUM_ZERO
+  //       hyperStakingTier.save()
+  //       if ((hyperStakingTier.vlpCommitted.plus(tempMintAmount)).le(hyperStakingTier.endVLP.minus(hyperStakingTier.startVLP))) {
+  //         break;
+  //       }
+  //     }
+  //     if (rewardTier < 6 && tempMintAmount.gt(BigInt.fromString('0'))) {
+  //       hyperStakingTier.vlpCommitted = hyperStakingTier.vlpCommitted.plus(tempMintAmount)
+  //       hyperStakingTier.usdcCommitted = hyperStakingTier.usdcCommitted.plus(tempUSDCAmount)
+  //       hyperStakingTier.save()
+  //       let userStakingStats = new UserStakingStat(event.params.account.toHexString() + "-" + rewardTier.toString() + "-" + event.block.timestamp.toString())
+  //       userStakingStats.account = event.params.account.toHexString()
+  //       userStakingStats.tier = rewardTier;
+  //       userStakingStats.usdcAmount = tempUSDCAmount;
+  //       userStakingStats.vlpAmount = tempMintAmount;
+  //       userStakingStats.timestamp = event.block.timestamp.toI32()
+  //       userStakingStats.isHyper = true;
+  //       userStakingStats.save()
+  //       let userStakingTier = UserStakingTier.load(event.params.account.toHexString() + "-" + rewardTier.toString())
+  //       if (!userStakingTier) {
+  //         userStakingTier = new UserStakingTier(event.params.account.toHexString() + "-" + rewardTier.toString())
+  //         userStakingTier.account = event.params.account.toHexString()
+  //         userStakingTier.tier = rewardTier
+  //         userStakingTier.usdcCommitted = BIG_NUM_ZERO
+  //         userStakingTier.vlpCommitted = BIG_NUM_ZERO
+  //       }
+  //       userStakingTier.usdcCommitted = userStakingTier.usdcCommitted.plus(tempUSDCAmount)
+  //       userStakingTier.vlpCommitted = userStakingTier.vlpCommitted.plus(tempMintAmount)
+  //       userStakingTier.save()
+  //       baseUserInfo.baseVLP = baseUserInfo.baseVLP.plus(tempMintAmount)
+  //       rewardAmount = getRewardAmount2(rewardTier)
+  //       baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.minus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
+  //       baseUserInfo.baseVela = baseUserInfo.baseVela.plus(tempMintAmount.times(rewardAmount).div(BigInt.fromString('1000')))
+  //       baseUserInfo.baseRatio = baseUserInfo.baseVela.times(BigInt.fromString('1000')).div(baseUserInfo.baseVLP)
+  //       baseUserInfo.mintedVLP = baseUserInfo.mintedVLP.plus(tempMintAmount)
+  //       baseUserInfo.minimumVLP = baseUserInfo.minimumVLP.plus(tempMintAmount)
+  //       baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.plus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
+  //     }
+  //     baseGlobalInfo.totalVLP = baseGlobalInfo.totalVLP.plus(event.params.mintAmount)
+  //     baseGlobalInfo.totalUSDC = baseGlobalInfo.totalUSDC.plus(event.params.amount)
+  //     if (baseGlobalInfo.totalVLP.ge(MAX_VLP_FOR_Hyper)) {
+  //       baseGlobalInfo.hyper_ended = true
+  //     }
+  //   } else {
+  //     baseGlobalInfo.totalVLP = baseGlobalInfo.totalVLP.plus(event.params.mintAmount)
+  //     baseGlobalInfo.totalUSDC = baseGlobalInfo.totalUSDC.plus(event.params.amount)
+  //     baseUserInfo.mintedVLP = baseUserInfo.mintedVLP.plus(event.params.mintAmount)
+  //   }
+  //   baseGlobalInfo.save()
+  //   baseUserInfo.save()
+  // }
 
-  export function handleUnstake(event: UnstakeEvent): void {
-    let vlpRedeem = new Redeem(event.params.account.toHexString() + "-" + event.block.timestamp.toString())
-    vlpRedeem.account = event.params.account.toHexString()
-    vlpRedeem.timestamp = event.block.timestamp.toI32()
-    vlpRedeem.token = event.params.token.toHexString()
-    vlpRedeem.usdAmount = event.params.amountOut 
-    vlpRedeem.vlpAmount = event.params.vlpAmount
-    vlpRedeem.save()
-    if (HYPER_ONE_WALLETS.includes(event.params.account.toHexString())) {
-      return;
-    }
-    let baseGlobalInfo = BaseGlobalInfo.load("global")
-    if (!baseGlobalInfo) {
-      baseGlobalInfo = new BaseGlobalInfo("global")
-      baseGlobalInfo.accumulatedSUM = BIG_NUM_ZERO
-      baseGlobalInfo.totalVLP = BIG_NUM_ZERO
-      baseGlobalInfo.totalUSDC = BIG_NUM_ZERO
-      baseGlobalInfo.totalStakes = BIG_NUM_ZERO
-      baseGlobalInfo.totalUnstakes = BIG_NUM_ZERO
-      baseGlobalInfo.hyper_ended = false
-    }
-    baseGlobalInfo.totalUnstakes = baseGlobalInfo.totalUnstakes.plus(event.params.amountOut)
-    let baseUserInfo = BaseUserInfo.load(event.params.account.toHexString())
-    if (!baseUserInfo) {
-      baseUserInfo = new BaseUserInfo(event.params.account.toHexString())
-      baseUserInfo.baseVela = BIG_NUM_ZERO
-      baseUserInfo.baseRatio = BIG_NUM_ZERO
-      baseUserInfo.baseVLP = BIG_NUM_ZERO
-      baseUserInfo.minimumVLP = BIG_NUM_ZERO
-      baseUserInfo.mintedVLP = BIG_NUM_ZERO
-    }
-    if (baseGlobalInfo.hyper_ended) {
-      baseGlobalInfo.totalVLP = baseGlobalInfo.totalVLP.minus(event.params.vlpAmount)
-      baseGlobalInfo.totalUSDC = baseGlobalInfo.totalUSDC.minus(event.params.amountOut)
-      baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.minus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
-      baseUserInfo.mintedVLP = baseUserInfo.mintedVLP.minus(event.params.vlpAmount)
-      if (baseUserInfo.mintedVLP.lt(baseUserInfo.minimumVLP)) {
-        baseUserInfo.minimumVLP = baseUserInfo.mintedVLP
-      }
-      baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.plus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
-    } else {
-      baseGlobalInfo.totalVLP = baseGlobalInfo.totalVLP.minus(event.params.vlpAmount)
-      baseGlobalInfo.totalUSDC = baseGlobalInfo.totalUSDC.minus(event.params.amountOut)
-    }
-    baseGlobalInfo.save()
-    baseUserInfo.save()
-  }
+  // export function handleUnstake(event: UnstakeEvent): void {
+  //   let vlpRedeem = new Redeem(event.params.account.toHexString() + "-" + event.block.timestamp.toString())
+  //   vlpRedeem.account = event.params.account.toHexString()
+  //   vlpRedeem.timestamp = event.block.timestamp.toI32()
+  //   vlpRedeem.token = event.params.token.toHexString()
+  //   vlpRedeem.usdAmount = event.params.amountOut 
+  //   vlpRedeem.vlpAmount = event.params.vlpAmount
+  //   vlpRedeem.save()
+  //   if (HYPER_ONE_WALLETS.includes(event.params.account.toHexString())) {
+  //     return;
+  //   }
+  //   let baseGlobalInfo = BaseGlobalInfo.load("global")
+  //   if (!baseGlobalInfo) {
+  //     baseGlobalInfo = new BaseGlobalInfo("global")
+  //     baseGlobalInfo.accumulatedSUM = BIG_NUM_ZERO
+  //     baseGlobalInfo.totalVLP = BIG_NUM_ZERO
+  //     baseGlobalInfo.totalUSDC = BIG_NUM_ZERO
+  //     baseGlobalInfo.totalStakes = BIG_NUM_ZERO
+  //     baseGlobalInfo.totalUnstakes = BIG_NUM_ZERO
+  //     baseGlobalInfo.hyper_ended = false
+  //   }
+  //   baseGlobalInfo.totalUnstakes = baseGlobalInfo.totalUnstakes.plus(event.params.amountOut)
+  //   let baseUserInfo = BaseUserInfo.load(event.params.account.toHexString())
+  //   if (!baseUserInfo) {
+  //     baseUserInfo = new BaseUserInfo(event.params.account.toHexString())
+  //     baseUserInfo.baseVela = BIG_NUM_ZERO
+  //     baseUserInfo.baseRatio = BIG_NUM_ZERO
+  //     baseUserInfo.baseVLP = BIG_NUM_ZERO
+  //     baseUserInfo.minimumVLP = BIG_NUM_ZERO
+  //     baseUserInfo.mintedVLP = BIG_NUM_ZERO
+  //   }
+  //   if (baseGlobalInfo.hyper_ended) {
+  //     baseGlobalInfo.totalVLP = baseGlobalInfo.totalVLP.minus(event.params.vlpAmount)
+  //     baseGlobalInfo.totalUSDC = baseGlobalInfo.totalUSDC.minus(event.params.amountOut)
+  //     baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.minus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
+  //     baseUserInfo.mintedVLP = baseUserInfo.mintedVLP.minus(event.params.vlpAmount)
+  //     if (baseUserInfo.mintedVLP.lt(baseUserInfo.minimumVLP)) {
+  //       baseUserInfo.minimumVLP = baseUserInfo.mintedVLP
+  //     }
+  //     baseGlobalInfo.accumulatedSUM = baseGlobalInfo.accumulatedSUM.plus(baseUserInfo.minimumVLP.times(baseUserInfo.baseRatio))
+  //   } else {
+  //     baseGlobalInfo.totalVLP = baseGlobalInfo.totalVLP.minus(event.params.vlpAmount)
+  //     baseGlobalInfo.totalUSDC = baseGlobalInfo.totalUSDC.minus(event.params.amountOut)
+  //   }
+  //   baseGlobalInfo.save()
+  //   baseUserInfo.save()
+  // }
 
   export function handleLiquidatePosition(event: LiquidatePositionEvent): void {
     let liquidatePositionEntity = new LiquidatePosition(event.params.posId.toString() + "-" + event.block.timestamp.toString())
