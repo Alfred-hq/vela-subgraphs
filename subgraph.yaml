@@ -188,30 +188,30 @@ dataSources:
   #       - event: Burn(indexed address,uint256)
   #         handler: handleBurn
   #     file: ./src/vault-utils.ts
-  # - kind: ethereum
-  #   name: SettingsManager
-  #   network: arbitrum-one
-  #   source:
-  #     address: "0x6F2c6010A438546242cAb29Bb755c1F0AfaCa5AA"
-  #     abi: SettingsManager
-  #     startBlock: 95718425
-  #   mapping:
-  #     kind: ethereum/events
-  #     apiVersion: 0.0.7
-  #     language: wasm/assemblyscript
-  #     entities:
-  #       - TradeVolume
-  #     abis:
-  #       - name: SettingsManager
-  #         file: ./abis/SettingsManager.json
-  #     eventHandlers:
-  #       - event: UpdateFunding(indexed uint256,int256)
-  #         handler: handleUpdateFunding
-  #       - event: DecreaseOpenInterest(indexed uint256,bool,uint256)
-  #         handler: handleDecreaseOpenInterest
-  #       - event: IncreaseOpenInterest(indexed uint256,bool,uint256)
-  #         handler: handleIncreaseOpenInterest
-  #     file: ./src/vault-utils.ts
+  - kind: ethereum
+    name: SettingsManager
+    network: arbitrum-one
+    source:
+      address: "0x6F2c6010A438546242cAb29Bb755c1F0AfaCa5AA"
+      abi: SettingsManager
+      startBlock: 95718425
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - TradeVolume
+      abis:
+        - name: SettingsManager
+          file: ./abis/SettingsManager.json
+      eventHandlers:
+        - event: UpdateFunding(indexed uint256,int256)
+          handler: handleUpdateFunding
+        - event: DecreaseOpenInterest(indexed uint256,bool,uint256)
+          handler: handleDecreaseOpenInterest
+        - event: IncreaseOpenInterest(indexed uint256,bool,uint256)
+          handler: handleIncreaseOpenInterest
+      file: ./src/vault-utils.ts
   # - kind: ethereum
   #   name: TokenFarm
   #   network: arbitrum-one
